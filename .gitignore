@@ -1,0 +1,12 @@
+/__pycache__
+*.pyc
+/mower.log
+/mower1M.log
+/mower1Mb.log
+/mower1Mc.log
+/mower250k.log
+/mower2M.log
+/mower4M.log
+/mower500k.log
+/mower50k.log
+/mower5k.log
