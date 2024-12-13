@@ -29,7 +29,7 @@ Reset the device and use the test client to issue some commands:
 ```
 
 ## Getting help
-Read the documentation [module information](http://proxymow.co.uk/mower).
+Read the documentation [module information](https://proxymow.co.uk/mower).
 
 ## Who maintains and contributes to the project
 info@proxymow.co.uk
