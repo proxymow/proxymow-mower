@@ -1,5 +1,7 @@
 /__pycache__
 *.pyc
+*.project
+*.pydevproject
 /mower.log
 /mower1M.log
 /mower1Mb.log
