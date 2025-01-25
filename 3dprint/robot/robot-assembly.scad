@@ -54,7 +54,7 @@ mirror([1, 0, 0]) half_drive();
 %color("#A52A2A20") translate([0, -3, 0]) baseplate_south();
 
 //hinge
-color("silver") translate([0, -53.33, 9]) hinge();
+color("silver") translate([0, -53.33, 0]) hinge();
 
 //batteries
 translate([8, 50, 0]) union() {
