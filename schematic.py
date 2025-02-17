@@ -39,19 +39,18 @@ tt_dur_timer = Timer(-1) # create mSec timer for led duration
 rtc = RTC()
 # customise h/w interfaces according to unique identifier
 uid = ubinascii.hexlify(unique_id()).decode().upper()
-nid = uid[:6]
-if nid == '6789AB':
+if uid == '6789ABCD':
     # customise your mower variant here
     mower_name = 'MyMower'
     adc_enabled = False
     i2c_enabled = False
-elif nid == '2345CD':
+elif uid == 'E661380123456789':
     # pico RP2
     mower_name = 'Pico1'
     dev_type = 'rp2'
 else:
-    # unidentified mac - use defaults
-    log('Unidentified Identifier nid: ' + nid)
+    # unidentified id - use defaults
+    log('Unidentified Identifier uid: ' + uid)
     mower_name = 'Unknown'
 out_pin_init_state = [False, False, False, False, False]
 # make all out pins outputs
@@ -86,7 +85,7 @@ else:
         PWM(out_pins["right_in2"], MOTOR_PWM_FREQ, 0),
         PWM(out_pins["right_in1"], MOTOR_PWM_FREQ, 0)
     ]
-log('motor pwms initialised nid:{} Name:{}'.format(nid, mower_name))
+log('motor pwms initialised uid:{} Name:{}'.format(uid, mower_name))
 # construct an I2C bus
 if i2c_enabled:
     if dev_type == 'rp2':
@@ -104,7 +103,4 @@ if adc_enabled:
         adcs.append(ADC(3)) # pin GP29 on pico
         adcs.append(ADC(ADC.CORE_TEMP))
     log('adc(s) initialised')
-# disable EPS8266 AP
-ap_if = network.WLAN(network.AP_IF)
-ap_if.active(False)
 log('Schematic for {} Initialised'.format(mower_name))
