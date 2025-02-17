@@ -51,17 +51,17 @@ def process(cmd, trace):
     
 log('Initialising socket...')
 # initialise socket
-HOST = ''       # Standard loopback interface address (localhost)
-PORT = 5005     # UDP Port to listen on (non-privileged ports are > 1023)
+HOST = '0.0.0.0'   # Standard loopback interface address (localhost)
+PORT = 5005        # UDP Port to listen on (non-privileged ports are > 1023)
 ACK = 'ACK'
-TIMEOUT = 30    # 30 seconds between checks if offline
+TIMEOUT = 30       # 30 seconds between checks if offline
 
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 s.bind((HOST, PORT))
 s.settimeout(TIMEOUT)
 log('listening on UDP Port ' + str(PORT))
 keep_going = True
-# start = ticks_ms() # get millisecond counter and predate
+
 timeout_count = 0
 checks() # boot checks to get online
         
