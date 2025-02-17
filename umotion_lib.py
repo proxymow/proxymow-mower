@@ -48,7 +48,7 @@ def get_telemetry():
             cut1_val = state & 1
             cut2_val = (state & 2) // 2
         except Exception as e:
-            utils.log('Error reading i2c in get telemetry: ', e)
+            utils.log('Error reading i2c in get telemetry: ' + str(e))
     anlgs = readadcs()
     if dev_type != 'rp2':
         if len(anlgs) > 0 and anlgs[0] > 512:
