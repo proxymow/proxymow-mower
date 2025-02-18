@@ -84,7 +84,7 @@ while keep_going:
                 if not is_pose_cmd:
                     log('Sent response')
             else:
-                # ASynchronous Request - process after replying ack
+                # Asynchronous Request - process after replying ack
                 log('Incoming asynchronous request: ' + cmd + ' from: ' + str(addr))
                 s.sendto(ACK, addr)
                 log('Sent acknowledgement')            
