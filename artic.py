@@ -1,6 +1,4 @@
 from time import ticks_ms, ticks_add, ticks_diff
-# import machine
-# from machine import Pin, I2C, Timer, RTC
 from machine import Timer
 import schematic as scm
 import umotion_lib as uml
@@ -10,7 +8,6 @@ from shared_utils import calc_new_pose
 
 chunk_index = -1
 remaining_ms = -1
-# left_speed_delta = right_speed_delta = relative_duration_ms = 0
 
 def sweep(left_speed, right_speed, duration):
     ut.log('sweeping...')
@@ -31,7 +28,6 @@ def sweep(left_speed, right_speed, duration):
     return 4 
 def activate(pwms, speeds, duration, chunked=False):
     global chunk_index
-    # global left_speed_delta, right_speed_delta, relative_duration_ms
     ut.log('activating periodic pwms... chunked? ' + str(chunked))
     scm.act_timer.deinit()
     deactivate(scm.pwms) # deactivate all
@@ -43,7 +39,7 @@ def activate(pwms, speeds, duration, chunked=False):
         ut.log('activating for '+str(duration)+' ms in '+str(chunks)+' chunks of '+str(chunk_dur_ms)+'ms')
         for i, pwm in enumerate(pwms):
             set_duty(pwm, speeds[i], scm.dev_type)
-        start_time_ms = ticks_ms() # now
+        start_time_ms = ticks_ms()
         finish_time_ms = ticks_add(start_time_ms, duration) # completion
         scm.act_timer.init(
             period=int(chunk_dur_ms), 
