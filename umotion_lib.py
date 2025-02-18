@@ -102,7 +102,7 @@ def cutter(addr_in, mode):
     addr_bytes = bytes(addr_byte_array)
     try:
         utils.log('Cutter address bytes {} Writing...'.format(addr_bytes))    
-        scm.i2c.writeto_mem(scm.i2c_reg, scm.RELAY_STATE_REG, addr_bytes) # b'\x01\x00'
+        scm.i2c.writeto_mem(scm.i2c_reg, scm.RELAY_STATE_REG, addr_bytes)
     except Exception:
         utils.log('Cutter address {} Write Failed'.format(addr))    
     return 3
