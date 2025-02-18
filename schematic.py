@@ -14,9 +14,9 @@ right_in2 = 13  #           GPIO13   D7 - boot high
 MOTOR_PWM_FREQ = 1000
 MOTOR_PWM_DUTY = 1023
 RP2_MOTOR_PWM_DUTY = 65535
-MIN_STEP_DUR_MS = 250 # 250
+MIN_STEP_DUR_MS = 250
 RELAY_STATE_REG = 10
-i2c_reg = 0x52 # 0x52(mLink)
+i2c_reg = 0x52 # mLink
 axle_track_m = 0 # m
 tyre_velocity_mps = 0 # metres per second
 # add pin names to in/out lists
