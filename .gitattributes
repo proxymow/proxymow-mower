@@ -1,1 +1,2 @@
 *.scad linguist-detectable=false
+*.scad linguist-language=MicroPython
