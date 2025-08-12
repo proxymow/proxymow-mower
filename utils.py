@@ -14,10 +14,6 @@ RSSI_THRESHOLDS = [0, -30, -67, -70, -80, -90, -999]
 RSSI_CATEGORIES = ['Unbelievable', 'Amazing', 'Very Good', 'O.K.', 'Not Good', 'Unusable']
 TX_POWER_DBM = 48 # AP Transmit Power
 WIFI_DISTANCE_FACTOR = 2
-late_telem = '"analogs": {}, "cutter1": {}, "cutter2": {}, "last-update": {}'
-early_telem = '{{{{' + late_telem + ',"priority-essid":"{}"'\
-            ',"essid":"{}","rssi":{},"dist":{}'\
-            ',"free-mb":{},"last-scan":{},"qual-essids":"{}"}}}}'
 telem = {}
 last_scan = None
 qual_essids = None
@@ -48,15 +44,12 @@ def disconnect():
 def checks():
     global telem
     check_wifi()
-    # assemble string of telemetry values
-    rssi = get_rssi()
-    dist = get_ap_dist(rssi)
-    telem = early_telem.format(
-                '{}','{}','{}','{}',
-                PRIORITY_ESSID, 
-                get_essid(), rssi, dist, 
-                free_space_mb(),
-                last_scan, qual_essids)
+    # update comms telemetry values
+    telem['priority-essid'] = PRIORITY_ESSID
+    telem['essid'] = get_essid()
+    telem['qual-essids'] = qual_essids
+    telem['free-mb'] = free_space_mb()
+    telem['last-scan'] = last_scan
 def scan_aps(cur_essid, cur_rssi, sta_if, trace=False):
     # scan aps and return any that are 'better'
     global last_scan, qual_essids
