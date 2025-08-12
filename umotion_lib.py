@@ -2,6 +2,7 @@ from math import degrees, radians
 from time import ticks_ms
 import machine
 from machine import Timer, ADC
+import json
 import schematic as scm
 import utils
 import artic
@@ -24,22 +25,19 @@ def sweep(left_speed, right_speed, duration):
 def readadcs():
     analogs = []
     if scm.adc_enabled:
-        if scm.dev_type == 'rp2':
-            analogs.append(scm.adcs[0].read_u16() // 64)
-            analogs.append(scm.adcs[1].read_u16() // 64)
-            analogs.append(scm.adcs[2].read_u16() // 64)
-            analogs.append(scm.adcs[3].read_u16() // 64)
-            analogs.append(scm.adcs[4].read_u16() // 64)
-        else:
+        if scm.dev_type == 'esp8266':
             analogs.append(scm.adcs[0].read())
             analogs.append(min_adc)
+        else:
+            for i in range(len(scm.adcs)):
+                analogs.append(scm.adcs[i].read_u16() // 64)
     else:
         analogs = []
     return analogs
 def get_telemetry():
-    # assemble string of telemetry values
+    # update telemetry values
     global min_adc
-    cut1_val = cut2_val = 0
+    cut1_val = cut2_val = -1
     if scm.i2c_enabled:
         try:
             byte_state = scm.i2c.readfrom_mem(scm.i2c_reg, scm.RELAY_STATE_REG, 1)
@@ -54,7 +52,17 @@ def get_telemetry():
         if len(anlgs) > 0 and anlgs[0] > 512:
             min_adc = min(anlgs[0], min_adc)
             anlgs[1] = min_adc
-    result = utils.telem.format(str(anlgs), cut1_val, cut2_val, ticks_ms())
+    utils.telem['analogs'] = anlgs
+    utils.telem['cutter1'] = cut1_val
+    utils.telem['cutter2'] = cut2_val
+    utils.telem['last-update'] = ticks_ms()
+    utils.telem['reset-cause'] = str(machine.reset_cause())
+    # refresh dynamic comms values
+    rssi = utils.get_rssi()
+    dist = utils.get_ap_dist(rssi)
+    utils.telem['rssi'] = rssi
+    utils.telem['dist'] = dist
+    result = json.dumps(utils.telem)
     return result
 def get_pose():
     # assemble pose string in degrees
@@ -84,28 +92,32 @@ def cutter(addr_in, mode):
         addr may be a binary address (mode -1)
         or a channel index (modes 0 & 1) 
     '''
-    utils.log('Cutter addr:{} mode:{} intmode:{} type:{}'.format(addr_in, mode, int(mode), type(mode)))
-    cutter_state_bytes = scm.i2c.readfrom_mem(scm.i2c_reg, scm.RELAY_STATE_REG, 2)
-    cur_state = int.from_bytes(cutter_state_bytes, 'big') // 256
-    addr = int(addr_in)
-    mask = 2**addr
-    if mode > 0.5:
-        # independent channel set mode
-        utils.log('Cutter {} ON'.format(addr + 1))
-        addr = cur_state | mask
-    elif mode >= 0.0:
-        # independent channel clear mode
-        utils.log('Cutter {} OFF'.format(addr + 1))
-        addr = cur_state & ~mask
-        
-    addr_byte_array = (addr, 0) # (address, timer)
-    addr_bytes = bytes(addr_byte_array)
-    try:
-        utils.log('Cutter address bytes {} Writing...'.format(addr_bytes))    
-        scm.i2c.writeto_mem(scm.i2c_reg, scm.RELAY_STATE_REG, addr_bytes)
-    except Exception:
-        utils.log('Cutter address {} Write Failed'.format(addr))    
-    return 3
+    result = -1
+    if scm.i2c_enabled:
+        utils.log('Cutter addr:{} mode:{} intmode:{} type:{}'.format(addr_in, mode, int(mode), type(mode)))
+        cutter_state_bytes = scm.i2c.readfrom_mem(scm.i2c_reg, scm.RELAY_STATE_REG, 2)
+        cur_state = int.from_bytes(cutter_state_bytes, 'big') // 256
+        addr = int(addr_in)
+        mask = 2**addr
+        if mode > 0.5:
+            # independent channel set mode
+            utils.log('Cutter {} ON'.format(addr + 1))
+            addr = cur_state | mask
+        elif mode >= 0.0:
+            # independent channel clear mode
+            utils.log('Cutter {} OFF'.format(addr + 1))
+            addr = cur_state & ~mask
+            
+        addr_byte_array = (addr, 0) # (address, timer)
+        addr_bytes = bytes(addr_byte_array)
+        try:
+            utils.log('Cutter address bytes {} Writing...'.format(addr_bytes))    
+            scm.i2c.writeto_mem(scm.i2c_reg, scm.RELAY_STATE_REG, addr_bytes)
+            result = 3
+        except Exception:
+            utils.log('Cutter address {} Write Failed'.format(addr))
+            result = 0
+    return result
 def cancel(_t=None):
     # switch off led - active low
     scm.out_pins['led'].value(True)    
