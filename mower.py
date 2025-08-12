@@ -1,7 +1,7 @@
 import os
 import socket
 import umotion_lib # needed to allow process to call functions
-from umotion_lib import led
+from umotion_lib import led, cutter
 from utils import log, checks
 from time import sleep
 from utime import ticks_ms, ticks_diff, time
@@ -62,12 +62,13 @@ s.settimeout(TIMEOUT)
 log('listening on UDP Port ' + str(PORT))
 keep_going = True
 
-timeout_count = 0
+timeouts = 0
 checks() # boot checks to get online
-        
+
 while keep_going:
     try:
         line, addr = s.recvfrom(1024)
+        timeouts = 0
         if line:
             cmd = line.decode("utf-8").strip()
             if cmd[0] == '>':
@@ -76,6 +77,7 @@ while keep_going:
                 is_pose_cmd = 'pose' in cmd
                 if not is_pose_cmd:
                     log('Incoming synchronous request: ' + cmd + ' from: ' + str(addr))
+                sleep(scm.REPL_SPACE)
                 result = process_cmd(cmd, False)
                 if not is_pose_cmd:
                     log('Processed result: ' + str(result))
@@ -94,17 +96,19 @@ while keep_going:
             log('Incoming request breaking!')
         led(100)
     except OSError as err:
-        msg = 'mower comms timeout - performing checks'
-        log(msg)
-        timeout_count += 1
-        led(500)
-        if timeout_count > 3:
-            led(10)
-            msg = 'mower comms timeout count exceeded - performing reset...'
-            log(msg)
+        timeouts += 1
+        if timeouts > 3:
+            log('timeout count exceeded - performing reset...')
+            # disable cutters to reduce emi
+            cutter(0, -1)
+            sleep(5)
             m.reset()
         else:
+            led(500)
+            sleep(5)
             checks()
     except Exception as err:
         msg = 'mower error: ' + str(err)
         log(msg)
+        sleep(30)
+        m.reset()
