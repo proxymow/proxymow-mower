@@ -1,4 +1,4 @@
-from time import ticks_ms, ticks_add, ticks_diff
+from time import ticks_ms, ticks_add, ticks_diff, sleep
 from machine import Timer
 import schematic as scm
 import umotion_lib as uml
@@ -46,6 +46,7 @@ def activate(pwms, speeds, duration, chunked=False):
             mode=Timer.PERIODIC, 
             callback=lambda t: motivate(t, pwms, speeds, chunks, chunk_dur_ms, finish_time_ms, start_time_ms)
         )
+        sleep(scm.REPL_SPACE)
 def motivate(t, pwms, speeds, chunks, chunk_dur_ms, finish_time_ms, start_time_ms):
     global chunk_index, remaining_ms
     chunk_index += 1
@@ -74,15 +75,16 @@ def motivate(t, pwms, speeds, chunks, chunk_dur_ms, finish_time_ms, start_time_m
         elapsed_ms = ticks_diff(ticks_ms(), start_time_ms)
         ut.log('de-activated after ' + str(elapsed_ms))
 def set_duty(pwm, speed_pc, dev_type):
-    if dev_type == 'rp2':
-        max_duty = scm.RP2_MOTOR_PWM_DUTY
-        pmw_duty = int(max_duty * (abs(speed_pc) / 100))
-        pwm.duty_u16(pmw_duty)
+    if dev_type == 'esp8266':
+        duty = min(int(scm.MOTOR_PWM_DUTY_10 * (abs(speed_pc) / 100)), scm.MOTOR_PWM_DUTY_10)
+        pwm_duty = scm.MOTOR_PWM_DUTY_10 - duty if scm.MOTOR_PWM_INVERT else duty
+        pwm.duty(pwm_duty)
+        ut.log('{} {}% set duty {} over {}'.format(dev_type, speed_pc, pwm_duty, scm.MOTOR_PWM_DUTY_10))
     else:
-        max_duty = scm.MOTOR_PWM_DUTY
-        pmw_duty = int(max_duty * (abs(speed_pc) / 100))
-        pwm.duty(pmw_duty)
-    ut.log('{} set duty {} over {}'.format(dev_type, pmw_duty, max_duty))
+        duty = min(int(scm.MOTOR_PWM_DUTY_16 * (abs(speed_pc) / 100)), scm.MOTOR_PWM_DUTY_16)
+        pwm_duty = scm.MOTOR_PWM_DUTY_16 - duty if scm.MOTOR_PWM_INVERT else duty
+        pwm.duty_u16(pwm_duty)
+        ut.log('{} {}% set duty {} over {}'.format(dev_type, speed_pc, pwm_duty, scm.MOTOR_PWM_DUTY_16))
 def deactivate(pwms):
     ut.log('deact')
     for pwm in pwms:
