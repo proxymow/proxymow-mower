@@ -2,6 +2,8 @@ from utime import ticks_ms, ticks_diff, sleep
 import os
 import network
 import ubinascii
+import schematic as scm
+from machine import Timer
 LOG_PRINT_ENABLED = True
 SWITCH_WIFI_ENABLED = True
 SCAN_WIFI_EVEN_IF_CONNECTED = True
@@ -165,3 +167,10 @@ def free_space_mb():
     free_space_h = df()
     free_mb = float(free_space_h.split()[0])
     return free_mb
+def cancel(_t=None):
+    # switch off led - active low
+    scm.out_pins['act_led'].value(True)    
+def led(duration=200):
+    # switch on led
+    scm.out_pins['act_led'].value(False)  
+    scm.tt_dur_timer.init(period=int(duration), mode=Timer.ONE_SHOT,callback=lambda t:cancel(t))
