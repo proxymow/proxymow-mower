@@ -7,7 +7,7 @@ Proxymow differs from many robotic mowers:
 * Does not rely on vulnerable boundary wires
 * Does not use GPS or Bollards
 * Does not need to be taught a route, supports plug-in mowing patterns
-* Employs very low cost technology: Rasperry Pi, NodeMCU
+* Employs very low cost technology: Rasperry Pi, NodeMCU, RPI Pico, ESP32
 
 ## Getting started
 Clone or Download the repo and change directory to the installation folder.
