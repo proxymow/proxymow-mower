@@ -1,28 +1,30 @@
 from machine import Pin, I2C, Timer, RTC, PWM, ADC, unique_id
 import ubinascii
 import network
-from utils import log
+from utils import log, led
+from time import sleep
 dev_type = 'esp8266' # default
 # name                      board label
 i2c_scl = 5     #           GPIO5    D1
 i2c_sda = 4     #           GPIO4    D2             
-led = 16        #           GPIO16   D0 active low
+act_led = 16    #           GPIO16   D0 active low
 left_in1 = 0    #           GPIO0    D3
 left_in2 = 14   #           GPIO14   D5
 right_in1 = 12  #           GPIO12   D6 - boot high
 right_in2 = 13  #           GPIO13   D7 - boot high
-MOTOR_PWM_FREQ = 1000
+MOTOR_PWM_FREQ = 2000
 MOTOR_PWM_DUTY_10 = 1023
 MOTOR_PWM_DUTY_16 = 65535
 MOTOR_PWM_INVERT = False
-MIN_STEP_DUR_MS = 250
+RAMP_UP_TIME_MS = 300
+RAMP_DOWN_TIME_MS = 0
 REPL_SPACE = 0.2   # 0.2 secs for other tasks
 RELAY_STATE_REG = 10
 i2c_reg = 0x52 # mLink
 axle_track_m = 0 # m
 tyre_velocity_mps = 0 # metres per second
 # add pin names to in/out lists
-out_pin_names = ['left_in1', 'left_in2', 'right_in1', 'right_in2', 'led']
+out_pin_names = ['left_in1', 'left_in2', 'right_in1', 'right_in2', 'act_led']
 out_pins = {}
 in_pin_names = []
 in_pin_numbers = []
@@ -41,8 +43,6 @@ if uid == '6789ABCD':
     mower_name = 'MyMower'
     adc_enabled = False
     i2c_enabled = False
-    left_scale_factor = 1.0
-    right_scale_factor = 1.0
 elif uid == 'E661380123456789':
     # pico RP2
     mower_name = 'Pico1'
@@ -51,14 +51,17 @@ elif uid == '6789ABCDEFGH':
     # esp32
     mower_name = 'ESP32-A'
     dev_type = 'esp32'
-    left_in1 = 15 # esp32 gpio0 => gpio15
-    right_in1 = 16 # esp32 gpio12 => gpio16
+    left_in1 = 16 # esp32 gpio0 => gpio16
+    left_in2 = 17 # esp32 gpio14 => gpio17
+    right_in1 = 18 # esp32 gpio12 => gpio18
+    right_in2 = 19 # esp32 gpio13 => gpio19
+    act_led = 14 # esp32 gpio16 => gpio14
 else:
     # unidentified id - use defaults
     log('Unidentified Identifier uid: ' + uid)
     mower_name = 'Unknown'
 out_pin_init_state = [MOTOR_PWM_INVERT] * 4 + [False]
-out_pin_numbers = [left_in1, left_in2, right_in1, right_in2, led]
+out_pin_numbers = [left_in1, left_in2, right_in1, right_in2, act_led]
 # make all out pins outputs
 pin_count = len(out_pin_names)
 for i in range(pin_count):
@@ -98,7 +101,11 @@ else:
         PWM(out_pins["right_in2"], freq=MOTOR_PWM_FREQ, duty_u16=MOTOR_PWM_DUTY_16 if MOTOR_PWM_INVERT else 0),
         PWM(out_pins["right_in1"], freq=MOTOR_PWM_FREQ, duty_u16=MOTOR_PWM_DUTY_16 if MOTOR_PWM_INVERT else 0)
     ]
-log('motor pwms initialised uid:{} Name:{}'.format(uid, mower_name))
+    for pwm in pwms: # ensure stopped
+        if pwm.duty_u16() != 0:
+            log('motor pwm {} failed to initialise - resetting duty'.format(pwm))
+            pwm.duty_u16(0)
+log('motor pwms initialised uid:{} Name:{} pwms:{}'.format(uid, mower_name, pwms))
 # construct an I2C bus
 if i2c_enabled:
     if dev_type == 'esp8266':
@@ -118,6 +125,10 @@ if adc_enabled:
         # pin number in the range 32 - 39
         chans = [36, 39, 34, 35, 32, 33]
     for chan in chans:
-        adcs.append(ADC(chan))
+        adc = ADC(chan)
+        if dev_type == 'esp32': adc.atten(ADC.ATTN_11DB) # 3.3V range
+        adcs.append(adc)
     log('{} adc(s) initialised'.format(len(chans)))
+for _ in range(4):
+    led(400);sleep(1);led(100);sleep(1)
 log('Schematic for {} {} Initialised'.format(mower_name, dev_type))
