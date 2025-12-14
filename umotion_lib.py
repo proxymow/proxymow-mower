@@ -1,5 +1,5 @@
 from math import degrees, radians
-from time import ticks_ms
+from time import ticks_ms, sleep
 import machine
 from machine import Timer, ADC
 import json
@@ -19,7 +19,8 @@ def stop():
     utils.log('Emergency Stop Activated!')
 def abort():
     # Abort Movement
-    artic.deactivate(scm.pwms)
+    for pwm in scm.pwms: # deactivate all
+        artic.set_duty(pwm, 0)
 def sweep(left_speed, right_speed, duration):
     return artic.sweep(left_speed, right_speed, duration)
 def readadcs():
@@ -30,6 +31,7 @@ def readadcs():
             analogs.append(min_adc)
         else:
             for i in range(len(scm.adcs)):
+                # read_u16 read a raw analog value in the range 0-65535
                 analogs.append(scm.adcs[i].read_u16() // 64)
     else:
         analogs = []
@@ -68,14 +70,14 @@ def get_pose():
     # assemble pose string in degrees
     return '{},{},{}'.format(x_m, y_m, degrees(theta_rad))
 def set_pose(xm_in, ym_in, thetadeg_in, axle_track_m=None, tyre_velocity_mps=None):
-    global x_m, y_m, theta_deg
+    global x_m, y_m, theta_rad
     # update pose
     if axle_track_m is not None:
         scm.axle_track_m = axle_track_m
     if tyre_velocity_mps is not None:
         scm.tyre_velocity_mps = tyre_velocity_mps
     x_m, y_m, theta_rad = xm_in, ym_in, radians(thetadeg_in)
-    utils.log('setting pose: {2:.0f}@({0:.2f}, {1:.2f})'.format(x_m, y_m, degrees(theta_rad)))
+    utils.log('setting pose: {:.0f}@({:.2f}, {:.2f})'.format(degrees(theta_rad), x_m, y_m))
     return 0
 def set_priority_essid(essid=None):
     # set the preferred access point in utils
@@ -107,7 +109,6 @@ def cutter(addr_in, mode):
             # independent channel clear mode
             utils.log('Cutter {} OFF'.format(addr + 1))
             addr = cur_state & ~mask
-            
         addr_byte_array = (addr, 0) # (address, timer)
         addr_bytes = bytes(addr_byte_array)
         try:
@@ -117,13 +118,18 @@ def cutter(addr_in, mode):
         except Exception:
             utils.log('Cutter address {} Write Failed'.format(addr))
             result = 0
+        # pause to allow settling
+        sleep(2.5)
     return result
 def cancel(_t=None):
     # switch off led - active low
-    scm.out_pins['led'].value(True)    
+    scm.out_pins['act_led'].value(True)    
 def led(duration=200):
     # switch on led
-    scm.out_pins['led'].value(False)  
-    scm.tt_dur_timer.init(period=int(duration), mode=Timer.ONE_SHOT, callback=lambda t:cancel(t))
+    scm.out_pins['act_led'].value(False)  
+    scm.tt_dur_timer.init(period=int(duration), mode=Timer.ONE_SHOT,callback=lambda t:cancel(t))
 def reset():
+    utils.log('Resetting in 5 seconds...')
+    stop()
+    sleep(5)
     machine.reset()
