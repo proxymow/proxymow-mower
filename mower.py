@@ -1,5 +1,6 @@
 import os
 import socket
+import re
 import umotion_lib # needed to allow process to call functions
 from umotion_lib import led, cutter
 from utils import log, checks
@@ -51,10 +52,12 @@ def process(cmd, trace):
     
 log('Initialising socket...')
 # initialise socket
-HOST = '0.0.0.0'   # Standard loopback interface address (localhost)
-PORT = 5005        # UDP Port to listen on (non-privileged ports are > 1023)
+HOST = '0.0.0.0'        # Standard loopback interface address (localhost)
+PORT = 5005             # UDP Port to listen on (non-privileged ports are > 1023)
 ACK = 'ACK'
-TIMEOUT = 30       # 30 seconds between checks if offline
+TIMEOUT = 30            # 30 seconds between checks if offline
+NUM_TIMEOUTS_RST = 3	# Number of timeouts before rebooting
+last_num_re = re.compile('[,)\s]+')
 
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 s.bind((HOST, PORT))
@@ -88,7 +91,8 @@ while keep_going:
             else:
                 # Asynchronous Request - process after replying ack
                 log('Incoming asynchronous request: ' + cmd + ' from: ' + str(addr))
-                s.sendto(ACK, addr)
+                resp = last_num_re.split(cmd)
+                s.sendto(ACK + '#' + resp[-2], addr)
                 log('Sent acknowledgement')            
                 result = process_cmd(cmd, True)
                 log('Processed result: ' + str(result))
@@ -97,7 +101,7 @@ while keep_going:
         led(100)
     except OSError as err:
         timeouts += 1
-        if timeouts > 3:
+        if timeouts > NUM_TIMEOUTS_RST:
             log('timeout count exceeded - performing reset...')
             # disable cutters to reduce emi
             cutter(0, -1)
