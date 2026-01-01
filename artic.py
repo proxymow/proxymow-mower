@@ -39,13 +39,16 @@ def activate(pwms, speeds, duration):
     scm.act_timer.deinit()
     for pwm in (set(scm.pwms) - set(pwms)): # deactivate others
         set_duty(pwm, 0)
-    # get current speeds
+    # get current speeds and directions
+    left_dir = (-1) ** (scm.pwms.index(pwms[0]) % 2)
+    right_dir = (-1) ** (scm.pwms.index(pwms[1]) % 2)
     if scm.dev_type == 'esp8266':
-        left_start = round(100 * pwms[0].duty() / scm.MOTOR_PWM_DUTY_10)
-        right_start = round(100 * pwms[1].duty() / scm.MOTOR_PWM_DUTY_10)
+        left_start = round(100 * pwms[0].duty() / scm.MOTOR_PWM_DUTY_10) * left_dir
+        right_start = round(100 * pwms[1].duty() / scm.MOTOR_PWM_DUTY_10) * right_dir
     else:
-        left_start = round(100 * pwms[0].duty_u16() / scm.MOTOR_PWM_DUTY_16)
-        right_start = round(100 * pwms[1].duty_u16() / scm.MOTOR_PWM_DUTY_16)
+        left_start = round(100 * pwms[0].duty_u16() / scm.MOTOR_PWM_DUTY_16) * left_dir
+        right_start = round(100 * pwms[1].duty_u16() / scm.MOTOR_PWM_DUTY_16) * right_dir
+    ut.log('starting at {}%|{}%'.format(left_start, right_start))
     # assemble profiles
     left_profiler = Profiler(left_start, speeds[0], duration, scm.RAMP_UP_TIME_MS, scm.RAMP_DOWN_TIME_MS)
     right_profiler = Profiler(right_start, speeds[1], duration, scm.RAMP_UP_TIME_MS, scm.RAMP_DOWN_TIME_MS)
