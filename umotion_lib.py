@@ -1,12 +1,12 @@
 from math import degrees, radians
 from time import ticks_ms, sleep
 import machine
-from machine import Timer, ADC
+from machine import Timer
 import json
+from sys import platform # esp32 | rp2
 import schematic as scm
 import utils
 import artic
-from schematic import dev_type
 
 x_m = y_m = theta_rad = 0
 min_adc = 1024
@@ -26,13 +26,9 @@ def sweep(left_speed, right_speed, duration):
 def readadcs():
     analogs = []
     if scm.adc_enabled:
-        if scm.dev_type == 'esp8266':
-            analogs.append(scm.adcs[0].read())
-            analogs.append(min_adc)
-        else:
-            for i in range(len(scm.adcs)):
-                # read_u16 read a raw analog value in the range 0-65535
-                analogs.append(scm.adcs[i].read_u16() // 64)
+        for i in range(len(scm.adcs)):
+            # read_u16 read a raw analog value in the range 0-65535
+            analogs.append(scm.adcs[i].read_u16() // 64)
     else:
         analogs = []
     return analogs
@@ -50,7 +46,7 @@ def get_telemetry():
         except Exception as e:
             utils.log('Error reading i2c in get telemetry: ' + str(e))
     anlgs = readadcs()
-    if dev_type != 'rp2':
+    if platform != 'rp2':
         if len(anlgs) > 0 and anlgs[0] > 512:
             min_adc = min(anlgs[0], min_adc)
             anlgs[1] = min_adc
@@ -59,18 +55,16 @@ def get_telemetry():
     utils.telem['cutter2'] = cut2_val
     utils.telem['last-update'] = ticks_ms()
     utils.telem['reset-cause'] = str(machine.reset_cause())
-    # refresh dynamic comms values
-    rssi = utils.get_rssi()
-    dist = utils.get_ap_dist(rssi)
-    utils.telem['rssi'] = rssi
-    utils.telem['dist'] = dist
-    result = json.dumps(utils.telem)
+    result = json.dumps(utils.telem, separators=(',', ':'))
     return result
 def get_pose():
-    # assemble pose string in degrees
-    return '{},{},{}'.format(x_m, y_m, degrees(theta_rad))
+    # assemble pose json in degrees
+    return '[{},{},{}]'.format(x_m, y_m, degrees(theta_rad))
 def set_pose(xm_in, ym_in, thetadeg_in, axle_track_m=None, tyre_velocity_mps=None):
     global x_m, y_m, theta_rad
+    utils.log('setting pose incoming: {:.0f}@({:.2f}, {:.2f}) {} {}'.format(
+        xm_in, ym_in, thetadeg_in, axle_track_m, tyre_velocity_mps)
+    )
     # update pose
     if axle_track_m is not None:
         scm.axle_track_m = axle_track_m
@@ -127,9 +121,9 @@ def cancel(_t=None):
 def led(duration=200):
     # switch on led
     scm.out_pins['act_led'].value(False)  
-    scm.tt_dur_timer.init(period=int(duration), mode=Timer.ONE_SHOT,callback=lambda t:cancel(t))
+    scm.led_on_timer.init(period=int(duration), mode=Timer.ONE_SHOT,callback=lambda t:cancel(t))
 def reset():
-    utils.log('Resetting in 5 seconds...')
     stop()
-    sleep(5)
-    machine.reset()
+    utils.log('Rebooting in 5 seconds...')
+    scm.led_off_timer.init(period=5000, mode=Timer.ONE_SHOT,callback=lambda t:machine.reset())
+    return 1
