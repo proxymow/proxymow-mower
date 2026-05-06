@@ -1,5 +1,4 @@
-import sys
-from math import pi, cos, sin, degrees
+from math import pi, cos, sin
 def get_turn_circle_from_relative_velocities(x1, y1, t1, v_left, v_right, axle_track_m, ccw_min_vdiff = 1.0e-5, debug=False, logger=None):
     cx = x1
     cy = y1
