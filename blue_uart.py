@@ -146,3 +146,4 @@ class BLE:
         name_bytes = bytes(self.name, 'utf-8')
         adv_payload = bytearray('\x02\x01\x06', 'utf-8') + bytearray((len(name_bytes) + 1, 0x09)) + name_bytes
         self.ble.gap_advertise(100_000, adv_payload) # microseconds
+        
