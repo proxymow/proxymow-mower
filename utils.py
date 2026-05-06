@@ -2,8 +2,6 @@ from utime import ticks_ms, ticks_diff, sleep
 import os
 import network
 import ubinascii
-import schematic as scm
-from machine import Timer
 LOG_PRINT_ENABLED = True
 SWITCH_WIFI_ENABLED = True
 SCAN_WIFI_EVEN_IF_CONNECTED = True
@@ -45,12 +43,17 @@ def disconnect():
     return sta_if.isconnected()
 def checks():
     global telem
+    # cat errors
+    try:
+        with open("error_log.txt") as f:
+            log(f.read())
+    except:
+        pass
     check_wifi()
     # update comms telemetry values
     telem['priority-essid'] = PRIORITY_ESSID
     telem['essid'] = get_essid()
     telem['qual-essids'] = qual_essids
-    telem['free-mb'] = free_space_mb()
     telem['last-scan'] = last_scan
 def scan_aps(cur_essid, cur_rssi, sta_if, trace=False):
     # scan aps and return any that are 'better'
@@ -145,9 +148,6 @@ def get_rssi():
     sta_if = network.WLAN(network.STA_IF)
     rssi = sta_if.status('rssi')    
     return rssi
-def get_ap_dist(rssi):
-    dist_m = round(10 ** ((abs(rssi) - TX_POWER_DBM) / 10 * WIFI_DISTANCE_FACTOR), 2)
-    return dist_m
 def macify(mac_bytes):
     return ubinascii.hexlify(mac_bytes,':').decode().upper()
 def rssi_category(rssi):
@@ -160,17 +160,3 @@ def rssi_category(rssi):
 def log(msg):
     if LOG_PRINT_ENABLED:
         print(msg)
-def df():
-    s = os.statvfs('//')
-    return ('{} MB'.format((s[0]*s[3])/1048576))
-def free_space_mb():
-    free_space_h = df()
-    free_mb = float(free_space_h.split()[0])
-    return free_mb
-def cancel(_t=None):
-    # switch off led - active low
-    scm.out_pins['act_led'].value(True)    
-def led(duration=200):
-    # switch on led
-    scm.out_pins['act_led'].value(False)  
-    scm.tt_dur_timer.init(period=int(duration), mode=Timer.ONE_SHOT,callback=lambda t:cancel(t))
